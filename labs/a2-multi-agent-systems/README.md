@@ -478,9 +478,19 @@ sequenceDiagram
 
    | Question | Your answer |
    |---|---|
-   | Did the two reviewers find *different* things? | |
-   | Is every 🔴 finding real? (check the line in the code) | |
-   | Was it worth 2 extra subagent runs of AI credits? | |
+   | Did the two reviewers find *different* things? | No. Both returned `APPROVE` with no actionable findings; the individual reruns reached the same conclusions. |
+   | Is every 🔴 finding real? (check the line in the code) | Not applicable: neither reviewer reported a High finding. |
+   | Was it worth 2 extra subagent runs of AI credits? | The separate R5 and coverage reviews provided additional confidence but found no additional defects. Credit usage was not measured, so cost-effectiveness is unverified. |
+
+### BL-02 review results
+
+| Severity | File / line | Finding | Suggested fix | Found by |
+|---|---|---|---|---|
+| — | — | No actionable findings. | None. | Reviewer 1 (R5 correctness) and Reviewer 2 (acceptance-test coverage) |
+
+**Verdict:** both reviewers returned `APPROVE`. Reviewer 2 confirmed coverage of accepted ages 60 and 68; HTTP 422 for ages below 60, above 68 and below the member's current age; the age-63 reduction of `0.325`; accrual stopping at the selected age; and both new response fields and the reduced total. The two former early-retirement rejection tests were replaced with successful projection tests, and OpenAPI was updated.
+
+The reviews were read-only and did not run tests. Separately, `npm test` passed **41 tests, 0 failures**.
 
 > 👀 **Expected:** two Reviewer subagent chats, then one merged table with a *Found by* column. The exact findings differ per run.
 > ⚠️ **If not:** only one reviewer ran → reply `Run the second Reviewer subagent with the test-coverage focus.` Separate contexts don't guarantee correct conclusions — verify before acting.

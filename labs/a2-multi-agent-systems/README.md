@@ -480,7 +480,7 @@ sequenceDiagram
    |---|---|
    | Did the two reviewers find *different* things? | No. Both returned `APPROVE` with no actionable findings; the individual reruns reached the same conclusions. |
    | Is every 🔴 finding real? (check the line in the code) | Not applicable: neither reviewer reported a High finding. |
-   | Was it worth 2 extra subagent runs of AI credits? | The separate R5 and coverage reviews provided additional confidence but found no additional defects. Credit usage was not measured, so cost-effectiveness is unverified. |
+   | Was it worth 2 extra subagent runs of AI credits? | The parallel reviews used 0.51386405 AI credits combined and found no additional defects. They provided independent checks, but this run does not demonstrate a defect-detection benefit. See Step 7 for usage details. |
 
 ### BL-02 review results
 
@@ -508,10 +508,28 @@ The reviews were read-only and did not run tests. Separately, `npm test` passed 
 
    | Metric | Count |
    |---|---|
-   | Subagent invocations (Steps 5 + 6) | |
-   | Tool calls by the Implementer | |
-   | `npm test` runs | |
-   | Customization files discovered (`.agent.md`) | |
+   | Subagent invocations (Steps 5 + 6) | 7 worker invocations: 1 Analyst, 1 Implementer and 5 Reviewers (initial review, 2 parallel reviews, 2 requested reruns). Including the delegated Feature Lead: 8. |
+   | Tool calls by the Implementer | 22 |
+   | `npm test` runs | 3: 1 by the Implementer and 2 verification runs by the parent assistant. Each passed 41 tests with 0 failures. |
+   | Customization files discovered (`.agent.md`) | 4 workspace agent files present; all four agent types were selected and invoked in this session. |
+
+### Observed usage for this run
+
+Counts and credits below come from the session log for Steps 5 and 6, including the two requested Reviewer reruns and excluding subsequent README updates and this measurement. Credits are summed from per-request `totalNanoAiu` values, divided by 1,000,000,000; all included credit records have status `complete`. Parent-assistant usage is excluded from this subagent table.
+
+| Agent invocation | AI credits |
+|---|---:|
+| Feature Lead (its own requests, excluding workers) | 0.29512385 |
+| Pension Analyst | 0.43044400 |
+| Implementer | 7.86250500 |
+| Initial Reviewer | 0.15101345 |
+| Parallel Reviewer 1: R5 correctness | 0.24934805 |
+| Parallel Reviewer 2: test coverage | 0.26451600 |
+| Reviewer 2 rerun: test coverage | 0.17531850 |
+| Reviewer 1 rerun: R5 correctness | 0.17798025 |
+| **Total subagent usage** | **9.60624910** |
+
+**Reflection:** the Implementer was the most expensive individual subagent invocation. A cheaper model for the read-only Analyst is worth evaluating, but this run did not compare models and cannot establish equivalent quality or actual savings. The two Reviewer reruns added 0.35329875 AI credits without changing either approval verdict.
 
 3. *(optional)* Enable the setting `chat.subagents.showCreditUsage` to see AI credit usage on each subagent pill.
 

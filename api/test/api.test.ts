@@ -54,12 +54,60 @@ describe('Contoso API', () => {
     assert.equal(res.status, 200);
     const body = await res.json();
     assert.equal(body.retirementAge, 68);
+    assert.equal(body.earlyRetirementReduction, 0);
+    assert.equal(body.unreducedAnnualPension, body.projectedAnnualPension);
     assert.ok(body.projectedAnnualPension > body.accruedToDate);
   });
 
-  test('POST /api/projections returns 422 for early retirement (backlog)', async () => {
+  test('POST /api/projections projects early retirement at 63 for M-1004', async () => {
     const res = await api.post('/api/projections', { memberId: 'M-1004', retirementAge: 63 });
-    assert.equal(res.status, 422);
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.retirementAge, 63);
+    assert.equal(body.retirementDate, '2029-06-30');
+    assert.equal(body.yearsToRetirement, 3);
+    assert.equal(body.accruedToDate, 10_423.7);
+    assert.equal(body.futureAccrual, 3_379.11);
+    assert.equal(body.earlyRetirementReduction, 0.325);
+    assert.equal(body.unreducedAnnualPension, 13_802.81);
+    assert.equal(body.projectedAnnualPension, 9_316.9);
+  });
+
+  for (const [retirementAge, years, futureAccrual, reduction, unreduced, reduced] of [
+    [60, 0, 0, 0.52, 10_423.7, 5_003.38],
+    [68, 8, 9_010.96, 0, 19_434.66, 19_434.66],
+  ]) {
+    test(`POST /api/projections accepts boundary age ${retirementAge}`, async () => {
+      const res = await api.post('/api/projections', { memberId: 'M-1004', retirementAge });
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.equal(body.retirementAge, retirementAge);
+      assert.equal(body.yearsToRetirement, years);
+      assert.equal(body.futureAccrual, futureAccrual);
+      assert.equal(body.earlyRetirementReduction, reduction);
+      assert.equal(body.unreducedAnnualPension, unreduced);
+      assert.equal(body.projectedAnnualPension, reduced);
+    });
+  }
+
+  for (const { memberId, retirementAge, message } of [
+    { memberId: 'M-1006', retirementAge: 66, message: 'retirementAge must not be below the member\'s current age' },
+    { memberId: 'M-1004', retirementAge: 59, message: 'retirementAge must be between 60 and 68' },
+    { memberId: 'M-1004', retirementAge: 69, message: 'retirementAge must be between 60 and 68' },
+  ]) {
+    test(`POST /api/projections rejects age ${retirementAge} for ${memberId} with HTTP 422`, async () => {
+      const res = await api.post('/api/projections', { memberId, retirementAge });
+      assert.equal(res.status, 422);
+      assert.deepEqual(await res.json(), { error: { code: 'UNPROCESSABLE', message } });
+    });
+  }
+
+  test('POST /api/projections rejects fractional retirement age with HTTP 400', async () => {
+    const res = await api.post('/api/projections', { memberId: 'M-1004', retirementAge: 63.5 });
+    assert.equal(res.status, 400);
+    assert.deepEqual(await res.json(), {
+      error: { code: 'BAD_REQUEST', message: 'Invalid projection request', details: ['retirementAge must be an integer'] },
+    });
   });
 
   test('POST /api/projections validates the body', async () => {

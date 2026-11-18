@@ -86,7 +86,7 @@ paths:
               required: [memberId]
               properties:
                 memberId: { type: string, example: M-1001 }
-                retirementAge: { type: integer, example: 68, description: 'Only 68 is supported today (early retirement is a backlog item).' }
+                retirementAge: { type: integer, minimum: 60, maximum: 68, default: 68, example: 63, description: 'Selected retirement age, from 60 through 68 inclusive, and not below the member’s current age. Accrual stops at this age.' }
                 salaryGrowthRate: { type: number, minimum: 0, maximum: 0.1, example: 0.02 }
       responses:
         '200': { description: Projection, content: { application/json: { schema: { $ref: '#/components/schemas/Projection' } } } }
@@ -136,7 +136,7 @@ components:
   responses:
     BadRequest: { description: Invalid input, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     NotFound: { description: Not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-    Unprocessable: { description: Valid input that breaks a business rule, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Unprocessable: { description: 'Valid input that breaks a business rule, including retirement age below the member’s current age or outside 60–68.', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   schemas:
     Error:
       type: object
@@ -191,6 +191,7 @@ components:
         scheme: { type: string }
     Projection:
       type: object
+      required: [earlyRetirementReduction, unreducedAnnualPension]
       properties:
         memberId: { type: string }
         retirementAge: { type: integer }
@@ -198,7 +199,9 @@ components:
         yearsToRetirement: { type: integer }
         accruedToDate: { type: number }
         futureAccrual: { type: number }
-        projectedAnnualPension: { type: number }
+        unreducedAnnualPension: { type: number, description: 'Total accrued pension plus future accrual before early-retirement reduction.' }
+        earlyRetirementReduction: { type: number, minimum: 0, maximum: 0.52, example: 0.325, description: 'Fractional reduction rate: 0.065 × (68 − retirementAge). Zero at age 68.' }
+        projectedAnnualPension: { type: number, description: 'Unreduced annual pension multiplied by (1 − earlyRetirementReduction), rounded to cents.' }
         scheme: { type: string }
     ServiceRequest:
       type: object
